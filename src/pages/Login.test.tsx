@@ -1,22 +1,23 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import type { SupabaseContextType } from '../context/SupabaseContext';
 
 vi.mock('../context/SupabaseContext', () => ({
-  useSupabase: vi.fn<[], SupabaseContextType>(),
+  // eslint-disable-next-line
+  useSupabase: vi.fn<any>(),
 }));
 
 vi.mock('../services/supabaseService', () => ({
   // eslint-disable-next-line
-  signInWithGoogle: vi.fn<[], any>(),
+  signInWithGoogle: vi.fn<any>(),
 }));
 
 import { useSupabase } from '../context/SupabaseContext';
 import { signInWithGoogle } from '../services/supabaseService';
 
-const mockedUseSupabase = useSupabase as ReturnType<typeof vi.fn<[], SupabaseContextType>>;
 // eslint-disable-next-line
-const mockedSignInWithGoogle = signInWithGoogle as ReturnType<typeof vi.fn<[], any>>;
+const mockedUseSupabase = useSupabase as ReturnType<any>;
+// eslint-disable-next-line
+const mockedSignInWithGoogle = signInWithGoogle as ReturnType<any>;
 
 import LoginPage from './Login';
 
