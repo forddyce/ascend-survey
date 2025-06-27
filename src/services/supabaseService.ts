@@ -1,25 +1,18 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey: string | undefined = import.meta.env
-  .VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    "Supabase URL or Anon Key is missing. Please check your .env.local file."
-  );
+  console.error('Supabase URL or Anon Key is missing. Please check your .env.local file.');
 }
 
 export const supabase: SupabaseClient | undefined =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : undefined;
+  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : undefined;
 
 const getSupabaseClient = (): SupabaseClient => {
   if (!supabase) {
-    throw new Error(
-      "Supabase client is not initialized. Check environment variables."
-    );
+    throw new Error('Supabase client is not initialized. Check environment variables.');
   }
   return supabase;
 };
@@ -27,7 +20,7 @@ const getSupabaseClient = (): SupabaseClient => {
 export const signInWithGoogle = async () => {
   const client = getSupabaseClient();
   const { data, error } = await client.auth.signInWithOAuth({
-    provider: "google",
+    provider: 'google',
     options: {
       redirectTo: window.location.origin,
     },
@@ -45,10 +38,10 @@ export const signOut = async (): Promise<void> => {
 export const fetchSurveys = async (adminId: string): Promise<Survey[]> => {
   const client = getSupabaseClient();
   const { data, error } = await client
-    .from("surveys")
-    .select("*")
-    .eq("admin_id", adminId)
-    .order("created_at", { ascending: false });
+    .from('surveys')
+    .select('*')
+    .eq('admin_id', adminId)
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return data as Survey[];
 };
@@ -56,7 +49,7 @@ export const fetchSurveys = async (adminId: string): Promise<Survey[]> => {
 export const createSurvey = async (
   adminId: string,
   title: string,
-  questions: Question[]
+  questions: Question[],
 ): Promise<Survey> => {
   const client = getSupabaseClient();
   const now = new Date();
@@ -75,10 +68,7 @@ export const createSurvey = async (
     current_votes: 0,
   };
 
-  const { data, error } = await client
-    .from("surveys")
-    .insert([newSurveyData])
-    .select();
+  const { data, error } = await client.from('surveys').insert([newSurveyData]).select();
 
   if (error) throw error;
 
@@ -86,9 +76,9 @@ export const createSurvey = async (
   const publicLink = `${window.location.origin}/survey/${createdSurvey.id}`;
 
   const { error: updateError } = await client
-    .from("surveys")
+    .from('surveys')
     .update({ public_link: publicLink })
-    .eq("id", createdSurvey.id);
+    .eq('id', createdSurvey.id);
 
   if (updateError) throw updateError;
 
@@ -97,11 +87,7 @@ export const createSurvey = async (
 
 export const getSurveyById = async (surveyId: string): Promise<Survey> => {
   const client = getSupabaseClient();
-  const { data, error } = await client
-    .from("surveys")
-    .select("*")
-    .eq("id", surveyId)
-    .single();
+  const { data, error } = await client.from('surveys').select('*').eq('id', surveyId).single();
 
   if (error) throw error;
   return data as Survey;
@@ -109,10 +95,11 @@ export const getSurveyById = async (surveyId: string): Promise<Survey> => {
 
 export const submitSurveyAnswers = async (
   surveyId: string,
-  answers: { [questionId: string]: string }
+  answers: { [questionId: string]: string },
+  // eslint-disable-next-line
 ): Promise<any> => {
   const client = getSupabaseClient();
-  const { data, error } = await client.functions.invoke("submit-survey", {
+  const { data, error } = await client.functions.invoke('submit-survey', {
     body: {
       surveyId: surveyId,
       answers: answers,

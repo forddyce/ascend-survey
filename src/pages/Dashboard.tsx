@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useSupabase } from "../context/SupabaseContext";
-import { fetchSurveys, signOut } from "../services/supabaseService";
+import React, { useState, useEffect } from 'react';
+import { useSupabase } from '../context/SupabaseContext';
+import { fetchSurveys, signOut } from '../services/supabaseService';
 
 const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
   const { session, supabase } = useSupabase();
@@ -10,7 +10,7 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
 
   useEffect(() => {
     if (!session || !session.user || !supabase) {
-      navigateTo("login");
+      navigateTo('login');
       return;
     }
 
@@ -20,9 +20,10 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
       try {
         const data = await fetchSurveys(session.user.id);
         setSurveys(data);
+        // eslint-disable-next-line
       } catch (err: any) {
-        console.error("Error loading surveys:", err.message);
-        setError("Failed to load surveys.");
+        console.error('Error loading surveys:', err.message);
+        setError('Failed to load surveys.');
       } finally {
         setLoadingSurveys(false);
       }
@@ -33,17 +34,17 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
     const surveysChannel = supabase
       .channel(`public:surveys:admin_id=eq.${session.user.id}`)
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "*",
-          schema: "public",
-          table: "surveys",
+          event: '*',
+          schema: 'public',
+          table: 'surveys',
           filter: `admin_id=eq.${session.user.id}`,
         },
         (payload) => {
           console.log({ payload });
           loadSurveys();
-        }
+        },
       )
       .subscribe();
 
@@ -53,38 +54,34 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
   }, [session, navigateTo, supabase]);
 
   const handleSignOut = async () => {
-    setError("");
+    setError('');
     try {
       await signOut();
-      navigateTo("login");
+      navigateTo('login');
+      // eslint-disable-next-line
     } catch (error: any) {
-      console.error("Sign Out Error:", error);
-      setError("Failed to sign out. Please try again.");
+      console.error('Sign Out Error:', error);
+      setError('Failed to sign out. Please try again.');
     }
   };
 
   if (!session || !session.user) {
-    return (
-      <div className="text-center text-gray-600">Redirecting to login...</div>
-    );
+    return <div className="text-center text-gray-600">Redirecting to login...</div>;
   }
 
   const currentUser = session.user;
 
   return (
     <div>
-      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
-        Admin Dashboard
-      </h2>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Admin Dashboard</h2>
       <p className="text-center text-gray-600 mb-4">
         Logged in as: <span className="font-semibold">{currentUser.email}</span>
         <br />
-        Your User ID:{" "}
-        <span className="font-mono text-sm">{currentUser.id}</span>
+        Your User ID: <span className="font-mono text-sm">{currentUser.id}</span>
       </p>
       <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
         <button
-          onClick={() => navigateTo("create-survey")}
+          onClick={() => navigateTo('create-survey')}
           className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition duration-300 ease-in-out transform hover:scale-105"
         >
           Create New Survey
@@ -99,15 +96,11 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
 
       {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 
-      <h3 className="text-2xl font-semibold mb-4 text-gray-700">
-        Your Surveys
-      </h3>
+      <h3 className="text-2xl font-semibold mb-4 text-gray-700">Your Surveys</h3>
       {loadingSurveys ? (
         <p className="text-gray-500 text-center">Loading surveys...</p>
       ) : surveys.length === 0 ? (
-        <p className="text-gray-500 text-center">
-          You haven't created any surveys yet.
-        </p>
+        <p className="text-gray-500 text-center">You haven't created any surveys yet.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {surveys.map((survey) => (
@@ -115,9 +108,7 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
               key={survey.id}
               className="bg-gray-50 p-5 rounded-lg shadow-md border border-gray-200"
             >
-              <h4 className="text-xl font-bold mb-2 text-blue-700">
-                {survey.title}
-              </h4>
+              <h4 className="text-xl font-bold mb-2 text-blue-700">{survey.title}</h4>
               <p className="text-sm text-gray-600 mb-1">
                 Created: {new Date(survey.created_at).toLocaleDateString()}
               </p>
@@ -137,7 +128,7 @@ const DashboardPage: React.FC<NavigateProps> = ({ navigateTo }) => {
                   View Public Link
                 </a>
                 <button
-                  onClick={() => navigateTo("survey-results", survey.id)}
+                  onClick={() => navigateTo('survey-results', survey.id)}
                   className="bg-purple-500 text-white px-4 py-2 rounded-full text-sm hover:bg-purple-600 transition duration-200"
                 >
                   View Results
