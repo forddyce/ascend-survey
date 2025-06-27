@@ -43,7 +43,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run React Tests
+      - name: Run Vitest Tests
         run: npm test
 
   deploy-supabase-functions:
@@ -60,11 +60,13 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: Install Supabase CLI
-        run: |
-          npm install -D supabase
-          # Verify installation
-          npx supabase --version
+      - name: Setup Node.js (for npm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Supabase CLI locally as dev dependency
+        run: npm install -D supabase
 
       - name: Link Supabase Project
         run: npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -93,7 +95,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Supabase CLI
+      - name: Setup Node.js (for npm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Supabase CLI locally as dev dependency
         run: npm install -D supabase
 
       - name: Link Supabase Project
