@@ -24,7 +24,7 @@ async function getRedisClient() {
       console.log('Successfully connected to Redis!');
     } catch (error) {
       console.error('Failed to connect to Redis:', error.message);
-      return null; // Return null if connection fails
+      return null;
     }
   }
   return redisClient;
