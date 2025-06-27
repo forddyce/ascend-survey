@@ -44,7 +44,7 @@ jobs:
         run: npm install
 
       - name: Run React Tests
-        run: npm test -- --ci --watchAll=false
+        run: npm test
 
   deploy-supabase-functions:
     name: Deploy Supabase Edge Functions
