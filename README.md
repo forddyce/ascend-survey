@@ -2,7 +2,7 @@
 
 ## Demo
 
-https://ascend-survey-forddyce-forddyces-projects.vercel.app/
+https://ascend-survey-forddyces-projects.vercel.app/
 
 ## Table of Contents
 
