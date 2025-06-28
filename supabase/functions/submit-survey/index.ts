@@ -1,30 +1,35 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.44.2';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { connect as connectRedis } from 'https://deno.land/x/redis@v0.32.2/mod.ts';
+import { Redis } from 'https://deno.land/x/upstash_redis@v1.19.3/mod.ts';
 
-const REDIS_HOST = Deno.env.get('REDIS_HOST');
-const REDIS_PORT = Deno.env.get('REDIS_PORT');
-const REDIS_PASSWORD = Deno.env.get('REDIS_PASSWORD');
+console.log(`Function "submit-survey" up and running!`);
 
-let redisClient: Awaited<ReturnType<typeof connectRedis>> | null = null;
+const REDIS_URL = Deno.env.get('REDIS_URL');
+const REDIS_TOKEN = Deno.env.get('REDIS_TOKEN');
+
+let redisClient: Redis | null = null;
 
 async function getRedisClient() {
-  if (!REDIS_HOST || !REDIS_PORT || !REDIS_PASSWORD) {
-    console.error('Redis environment variables are not set. Rate limiting will be skipped.');
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    console.error(
+      'Upstash Redis environment variables (REDIS_URL, REDIS_TOKEN) are not set. Rate limiting will be skipped.',
+    );
     return null;
   }
   if (!redisClient) {
+    console.time('Redis_Connect');
     try {
-      redisClient = await connectRedis({
-        hostname: REDIS_HOST,
-        port: Number(REDIS_PORT),
-        password: REDIS_PASSWORD,
+      redisClient = new Redis({
+        url: REDIS_URL,
+        token: REDIS_TOKEN,
       });
-      console.log('Successfully connected to Redis!');
+      console.log('Successfully connected to Upstash Redis!');
     } catch (error) {
-      console.error('Failed to connect to Redis:', error.message);
-      return null;
+      console.error('Failed to connect to Upstash Redis:', (error as Error).message);
+      redisClient = null;
+    } finally {
+      console.timeEnd('Redis_Connect');
     }
   }
   return redisClient;
@@ -64,10 +69,12 @@ serve(async (req: Request) => {
     const redis = await getRedisClient();
 
     if (redis) {
+      console.time('Redis_IncrExpire');
       const currentRequests = await redis.incr(rateLimitKey);
       if (currentRequests === 1) {
         await redis.expire(rateLimitKey, RATE_LIMIT_WINDOW_SECONDS);
       }
+      console.timeEnd('Redis_IncrExpire');
 
       if (currentRequests > MAX_REQUESTS_PER_WINDOW) {
         return new Response(
@@ -82,11 +89,13 @@ serve(async (req: Request) => {
       console.warn('Redis client not available. Skipping rate limiting.');
     }
 
+    console.time('DB_SurveySelect');
     const { data: survey, error: surveyError } = await supabaseClient
       .from('surveys')
       .select('expires_at, max_votes, current_votes')
       .eq('id', surveyId)
       .single();
+    console.timeEnd('DB_SurveySelect');
 
     if (surveyError || !survey) {
       console.error(
@@ -120,10 +129,12 @@ serve(async (req: Request) => {
       );
     }
 
+    console.time('DB_RPC_submit_survey_response');
     const { data: rpcData, error: rpcError } = await supabaseClient.rpc('submit_survey_response', {
       p_survey_id: surveyId,
       p_answers: answers,
     });
+    console.timeEnd('DB_RPC_submit_survey_response');
 
     if (rpcError) {
       console.error('Error calling RPC function:', rpcError);
