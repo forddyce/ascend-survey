@@ -17,7 +17,7 @@ https://ascend-survey-forddyces-projects.vercel.app/
 - [Github Workflow Setup](#github-workflow-setup)
 - [Project Retrospective](#project-retrospective)
 - [Marginal Costs](#marginal-costs)
-- [Perfomance Budget And Measurement Methods](#performance-budget-and-measurement-methods)
+- [Performance Budget And Measurement Methods](#performance-budget-and-measurement-methods)
 
 ---
 
@@ -307,7 +307,7 @@ Upstash Redis instances also have different pricing models (Free, Pay-as-you-go,
 
   Marginal Cost: The "Pay-as-you-go" plan includes a certain amount of free bandwidth (e.g., 200GB), then charges per additional GB.
 
-# Perfomance Budget And Measurement Methods
+# Performance Budget And Measurement Methods
 
 ### 1. Frontend Performance (React App on Vercel)
 
