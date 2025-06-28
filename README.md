@@ -16,6 +16,8 @@ https://ascend-survey-forddyces-projects.vercel.app/
   - [Upstash Setup (Redis)](#upstash-setup-redis)
 - [Github Workflow Setup](#github-workflow-setup)
 - [Project Retrospective](#project-retrospective)
+- [Marginal Costs](#marginal-costs)
+- [Perfomance Budget And Measurement Methods](#performance-budget-and-measurement-methods)
 
 ---
 
@@ -260,3 +262,151 @@ The `deploy-frontend` job in your `ci-cd.yml` pipeline (using `amondnet/vercel-a
 - Robustness of IP-based rate limiting against sophisticated bot attacks (consider user based limits for authenticated actions).
 - Ongoing maintenance of CI/CD secrets and environment variables.
 - Potential for complex UI state management as the application grows.
+
+## Marginal Costs
+
+1.  **Supabase (Database Rows & Operations)**:
+
+Supabase has a tiered pricing model (Free, Pro, Team, Enterprise). Your costs are primarily determined by:
+
+- **Database Size (Rows/Disk Usage)**: This is the total storage consumed by your tables and indexes.
+
+  Marginal Cost: On paid plans (Pro and above), you get an included amount of disk space (e.g., 8 GB on Pro). Beyond this, you pay per GB (e.g., $0.125 per GB).
+
+- **Monthly Active Users (MAU)**: For authentication.
+
+  Marginal Cost: After an included MAU quota (e.g., 100,000 on Pro), you pay per additional MAU (e.g., $0.00325 per MAU).
+
+- **Edge Function Invocations**: Each call to your submit-survey Edge Function.
+
+  Marginal Cost: After an included invocation quota (e.g., 2 million on Pro), you pay per additional million invocations (e.g., $2 per million).
+
+- **Realtime Message Count & Peak Connections**: If you implement real-time features (like live vote updates).
+
+  Marginal Cost: Billed per million messages and per 1,000 peak connections beyond included quotas.
+
+- **Egress (Bandwidth)**: Data transfer out from your database or storage.
+
+  Marginal Cost: After an included bandwidth quota, you pay per GB.
+
+- **Compute:** The underlying server resources for your Postgres database. On paid plans, you have dedicated compute, and you can scale this up for better performance, which incurs additional costs.
+
+2.  **Upstash (Redis Operations)**:
+
+Upstash Redis instances also have different pricing models (Free, Pay-as-you-go, Fixed Plans, Prod Pack, Enterprise). Your primary cost drivers for your rate limiter will be:
+
+- **Commands (Requests):** Every INCR or EXPIRE command sent to Redis is counted.
+
+  Marginal Cost: On the "Pay-as-you-go" plan, after the Free Tier's 500K commands/month, you typically pay per 100K requests (e.g., $0.20 per 100K requests). Fixed plans include a certain request per second (RPS) limit.
+
+- **Storage:** The amount of data stored in Redis.
+
+  Marginal Cost: Beyond the free tier (256MB), you pay per GB (e.g., $0.25/GB for pay-as-you-go). For a rate limiter, storage usage is usually minimal unless you store large amounts of data per key or have a massive number of unique IPs to track.
+
+- **Bandwidth:** Data transfer in and out of Redis.
+
+  Marginal Cost: The "Pay-as-you-go" plan includes a certain amount of free bandwidth (e.g., 200GB), then charges per additional GB.
+
+# Perfomance Budget And Measurement Methods
+
+### 1. Frontend Performance (React App on Vercel)
+
+These budgets focus on the user's experience in the browser.
+
+**Recommended Budgets:**
+
+- **Loading Performance (Core Web Vitals):**
+  - **Largest Contentful Paint (LCP):** < 2.5 seconds (measures perceived load speed)
+  - **First Contentful Paint (FCP):** < 1.8 seconds (measures when first content is drawn)
+- **Interactivity Performance (Core Web Vitals):**
+  - **Interaction to Next Paint (INP):** < 200 ms (measures overall responsiveness to user input)
+  - _(Note: INP is replacing FID as a Core Web Vital in March 2024)_
+  - **Total Blocking Time (TBT):** < 200 ms (measures CPU blocking during loading)
+- **Visual Stability (Core Web Vitals):**
+  - **Cumulative Layout Shift (CLS):** < 0.1 (measures unexpected layout shifts)
+- **Bundle Size:**
+  - **JavaScript Bundle Size (Gzipped):** < 200 KB (for the initial load, smaller is always better)
+  - **CSS Bundle Size (Gzipped):** < 50 KB
+
+**Measurement Methods:**
+
+- **Development & Debugging:**
+  - **Chrome DevTools (Lighthouse Tab):** Run audits directly in your browser. Provides detailed reports on Core Web Vitals and suggestions for improvement.
+  - **Chrome DevTools (Performance Tab):** Record runtime performance to identify slow renders, long tasks, and layout shifts.
+  - **React DevTools:** Helps identify re-renders and component performance issues.
+- **Pre-deployment / CI/CD Integration:**
+  - **Lighthouse CI:** Integrate Lighthouse audits into your GitHub Actions pipeline (`.github/workflows/ci-cd.yml`). This ensures performance regressions are caught before deployment. You can set budget thresholds that fail the build if not met.
+  - **Webpack Bundle Analyzer (or equivalent for Vite):** Use a tool to visualize your JavaScript bundle composition and identify large dependencies that could be trimmed.
+  - **WebPageTest:** A more advanced tool for synthetic testing from various locations and network conditions. Can be automated.
+- **Production Monitoring (Real User Monitoring - RUM):**
+  - **Google Search Console (Core Web Vitals Report):** Provides field data from real users.
+  - **Vercel Analytics / Speed Insights:** Vercel offers built-in analytics that include performance metrics.
+  - **Google Analytics / custom RUM solutions:** Collect real-user data on performance metrics.
+
+---
+
+### 2. Backend Performance (Supabase & Upstash)
+
+These budgets focus on the speed and efficiency of your server-side operations and data stores.
+
+#### **2.1. Supabase Database (PostgreSQL)**
+
+**Recommended Budgets:**
+
+- **Query Latency (P95):** < 100 ms for critical read/write operations (e.g., fetching a survey, inserting a submission). P95 means 95% of queries should be faster than this.
+- **Database CPU Usage:** Average < 60%, Peak < 90% (sustained).
+- **Database Memory Usage:** Average < 70%, Peak < 90% (sustained).
+- **Active Connections:** Keep within Supabase's recommended pooler limits (e.g., < 400 for standard plans).
+- **Disk I/O:** Monitor for high read/write IOPS, which can indicate inefficient queries or insufficient indexing.
+
+**Measurement Methods:**
+
+- **Supabase Dashboard:**
+  - **"Usage" / "Billing & Usage":** Provides aggregate data on database size, egress, and function invocations.
+  - **"Database" > "Reports" / "Metrics":** Offers charts for CPU, memory, disk usage, active connections, and query performance (requires `pg_stat_statements` enabled).
+- **Supabase CLI (`supabase inspect db`):**
+  - `supabase inspect db long-running-queries`: Identify slow queries.
+  - `supabase inspect db unused-indexes`: Find indexes that aren't being used.
+  - `supabase inspect db cache-hit`: Check database cache efficiency.
+  - `supabase inspect db table-sizes` / `index-sizes`: Monitor data and index growth.
+- **SQL Queries in Supabase Studio:**
+  - `EXPLAIN ANALYZE <your_query>;`: Analyze the execution plan and cost of specific SQL queries to optimize them.
+  - Query `pg_stat_statements` (if enabled in database settings) for top queries by execution time, calls, etc.
+- **Postgres Logs:** Supabase provides access to Postgres logs, which can reveal slow queries, errors, and connection issues.
+
+#### **2.2. Supabase Edge Functions (`submit-survey`)**
+
+**Recommended Budgets:**
+
+- **Invocation Latency (P95):**
+  - **Cold Start:** < 500 ms (initial invocation after inactivity).
+  - **Warm Start:** < 100 ms (subsequent invocations).
+- **Error Rate:** < 0.5% (percentage of invocations resulting in an error).
+- **Memory Usage:** Stay well within the allocated memory limit (e.g., < 128 MB or 256 MB depending on Supabase's allocation).
+- **Execution Duration:** The actual time the Deno code runs (aim for low milliseconds).
+
+**Measurement Methods:**
+
+- **Supabase Dashboard (`Edge Functions` section):**
+  - Shows total invocations and average execution time for each function.
+  - Provides access to function logs, where you can see detailed output, errors, and cold start warnings.
+- **Custom Logging:** Implement detailed logging within your Edge Function (`console.log`) to track specific operation durations (e.g., Redis calls, database RPC calls) and error messages. These logs will appear in the Supabase Edge Function logs.
+
+#### **2.3. Upstash Redis (Rate Limiter)**
+
+**Recommended Budgets:**
+
+- **Command Latency (P95):** < 5 ms (for `INCR` and `EXPIRE` commands). Redis is extremely fast, so this should be very low.
+- **Throughput:** Handle your expected commands per second (e.g., 5-10 commands/second per active IP). Ensure you stay within your plan's RPS limits.
+- **Keyspace Size:** Monitor the number of keys. For a rate limiter, it should correlate with the number of unique IPs accessing your service within the rate limit window. Keep it manageable.
+- **Memory Usage:** For the rate limiter, this should be very low (few MBs).
+
+**Measurement Methods:**
+
+- **Upstash Console Dashboard:**
+  - **"Metrics and Charts":** Provides real-time graphs for:
+    - **Throughput:** Commands per second (reads, writes, total). This directly shows your rate limiter's activity.
+    - **Service Time Latency:** Latency statistics (mean, max, percentiles) for Redis commands.
+    - **Data Size / Keyspace:** Tracks the number of keys and total memory consumed.
+    - **Daily Cost:** Gives you a direct view of the cost impact.
+- **Redis `MONITOR` Command (for debugging):** While not for production monitoring, you can temporarily use this through an external Redis client to see all commands hitting your Redis instance in real-time.
